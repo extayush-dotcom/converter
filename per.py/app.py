@@ -1,3 +1,4 @@
+```python
 import streamlit as st
 from PIL import Image
 import img2pdf
@@ -7,10 +8,7 @@ import cv2
 import numpy as np
 import fitz  # PyMuPDF
 from pypdf import PdfReader, PdfWriter
-import pikepdf
 import base64
-import os
-import tempfile
 
 # Configure page
 st.set_page_config(
@@ -44,13 +42,13 @@ st.markdown("""
 </style>
 """, unsafe_allow_html=True)
 
-# Helper Functions
+# ===== Helper Functions =====
 def create_download_link(data, filename, text="Download"):
     b64 = base64.b64encode(data).decode()
     href = f'<a href="data:application/octet-stream;base64,{b64}" download="{filename}">{text}</a>'
     return href
 
-# ===== PDF to Image with PyMuPDF (No Poppler) =====
+# ===== PDF to Image with PyMuPDF =====
 def pdf_to_images_pymupdf(pdf_bytes, dpi=200, image_format="PNG"):
     """Convert PDF to list of images using PyMuPDF"""
     try:
@@ -137,13 +135,18 @@ def compress_image(image_file, quality=85):
         st.error(f"Compression error: {e}")
         return None
 
+# ===== FIXED Images to PDF (handles invalid EXIF rotation) =====
 def images_to_pdf_conversion(image_files):
     try:
-        img_data = []
+        pil_images = []
         for img_file in image_files:
-            img_file.seek(0)
-            img_data.append(img_file.read())
-        pdf_bytes = img2pdf.convert(img_data)
+            img = Image.open(img_file)
+            rgb_img = img.convert("RGB")  # normalize mode
+            temp_io = io.BytesIO()
+            rgb_img.save(temp_io, format="JPEG")
+            temp_io.seek(0)
+            pil_images.append(temp_io.read())
+        pdf_bytes = img2pdf.convert(pil_images, rotation=img2pdf.Rotation.ifvalid)
         return pdf_bytes
     except Exception as e:
         st.error(f"Error creating PDF: {e}")
@@ -157,7 +160,7 @@ def main():
     st.sidebar.title("🚀 Operations")
     operation = st.sidebar.selectbox(
         "Choose operation:",
-        ["📄 PDF to Images", "🖼️ Images to PDF", "📏 Resize Images", 
+        ["📄 PDF to Images", "🖼️ Images to PDF", "📏 Resize Images",
          "🗜️ Compress Images", "🔒 PDF Security"]
     )
 
@@ -207,7 +210,7 @@ def pdf_to_images_interface():
 
 def images_to_pdf_interface():
     st.header("🖼️ Images to PDF Converter")
-    uploaded_files = st.file_uploader("Choose images", 
+    uploaded_files = st.file_uploader("Choose images",
         type=["png", "jpg", "jpeg", "bmp", "tiff"], accept_multiple_files=True)
     if uploaded_files:
         st.info(f"Selected {len(uploaded_files)} images")
@@ -288,6 +291,8 @@ def show_footer():
 if __name__ == "__main__":
     main()
     show_footer()
+```
+
 
 
 
