@@ -1,4 +1,4 @@
-```python
+
 import streamlit as st
 from PIL import Image
 import img2pdf
@@ -291,7 +291,8 @@ def show_footer():
 if __name__ == "__main__":
     main()
     show_footer()
-```
+
+
 
 
 
