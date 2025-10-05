@@ -1,0 +1,12 @@
+streamlit
+pillow
+img2pdf
+pytesseract
+opencv-python-headless
+numpy
+pymupdf
+pypdf
+pikepdf
+easyocr
+torch
+cryptography>=41.0.0
