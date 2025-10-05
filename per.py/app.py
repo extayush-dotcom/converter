@@ -3,7 +3,6 @@ from PIL import Image
 import img2pdf
 import io
 import zipfile
-import pytesseract
 import cv2
 import numpy as np
 import fitz  # PyMuPDF
@@ -12,7 +11,6 @@ import pikepdf
 import base64
 import os
 import tempfile
-import easyocr
 
 # Configure page
 st.set_page_config(
@@ -68,51 +66,6 @@ def pdf_to_images_pymupdf(pdf_bytes, dpi=200, image_format="PNG"):
     except Exception as e:
         st.error(f"Error converting PDF: {e}")
         return None
-
-# ===== OCR =====
-def perform_ocr_on_pdf(pdf_file, language='eng'):
-    """Extract text from PDF using EasyOCR (PyMuPDF + EasyOCR)"""
-    try:
-        pdf_file.seek(0)
-        pdf_bytes = pdf_file.read()
-        images = pdf_to_images_pymupdf(pdf_bytes)
-
-        lang_map = {
-            'eng': 'en', 'spa': 'es', 'fra': 'fr', 'deu': 'de',
-            'hin': 'hi', 'chi_sim': 'ch_sim'
-        }
-        easyocr_lang = lang_map.get(language, 'en')
-        reader = easyocr.Reader([easyocr_lang], gpu=False)
-
-        extracted_text = []
-        progress_bar = st.progress(0)
-        status_text = st.empty()
-
-        for page_num, page in enumerate(images):
-            status_text.text(f'Processing page {page_num + 1} of {len(images)}...')
-            img_array = np.array(page)
-            results = reader.readtext(img_array, detail=0)
-            text = "\n".join(results)
-            extracted_text.append(f"--- Page {page_num + 1} ---\n{text}\n")
-            progress_bar.progress((page_num + 1) / len(images))
-
-        status_text.text('OCR completed!')
-        return extracted_text
-    except Exception as e:
-        st.error(f"OCR Error: {e}")
-        return None
-
-def perform_ocr_on_image(image_file, language='eng'):
-    lang_map = {
-        'eng': 'en', 'spa': 'es', 'fra': 'fr', 
-        'deu': 'de', 'hin': 'hi', 'chi_sim': 'ch_sim'
-    }
-    easyocr_lang = lang_map.get(language, 'en')
-    reader = easyocr.Reader([easyocr_lang], gpu=False)
-    img = Image.open(image_file)
-    img_array = np.array(img)
-    results = reader.readtext(img_array, detail=0)
-    return "\n".join(results)
 
 # ===== Security Functions =====
 def encrypt_pdf(pdf_bytes, user_password, owner_password=None):
@@ -205,7 +158,7 @@ def main():
     operation = st.sidebar.selectbox(
         "Choose operation:",
         ["📄 PDF to Images", "🖼️ Images to PDF", "📏 Resize Images", 
-         "🗜️ Compress Images", "📖 OCR Text Extraction", "🔒 PDF Security"]
+         "🗜️ Compress Images", "🔒 PDF Security"]
     )
 
     if operation == "📄 PDF to Images":
@@ -216,8 +169,6 @@ def main():
         resize_images_interface()
     elif operation == "🗜️ Compress Images":
         compress_images_interface()
-    elif operation == "📖 OCR Text Extraction":
-        ocr_interface()
     elif operation == "🔒 PDF Security":
         security_interface()
 
@@ -307,25 +258,6 @@ def compress_images_interface():
                     mime="image/jpeg"
                 )
 
-def ocr_interface():
-    st.header("📖 OCR Text Extraction")
-    uploaded_file = st.file_uploader("Choose PDF or Image", type=["pdf", "png", "jpg", "jpeg"])
-    if uploaded_file is not None:
-        language = st.selectbox("OCR Language", 
-            {'English': 'eng', 'Spanish': 'spa', 'French': 'fra',
-             'German': 'deu', 'Hindi': 'hin', 'Chinese': 'chi_sim'}.items(),
-            format_func=lambda x: x[0])
-        language_code = language[1]
-        if st.button("Extract Text", type="primary"):
-            if uploaded_file.type == "application/pdf":
-                extracted_text = perform_ocr_on_pdf(uploaded_file, language_code)
-                if extracted_text:
-                    full_text = "\n".join(extracted_text)
-                    st.text_area("Extracted Text", full_text, height=400)
-            else:
-                text = perform_ocr_on_image(uploaded_file, language_code)
-                st.text_area("Extracted Text", text, height=300)
-
 def security_interface():
     st.header("🔒 PDF Security")
     uploaded_file = st.file_uploader("Choose PDF", type="pdf")
@@ -350,10 +282,13 @@ def show_footer():
     st.markdown(
         "<div style='text-align: center; color: #666; padding: 20px;'>"
         "<p>🔧 Multi-Purpose File Processor | Built with Streamlit</p>"
-        "<p>Features: PDF ↔ Images • OCR • Editing • Security • Compression</p>"
+        "<p>Features: PDF ↔ Images • Editing • Security • Compression</p>"
         "</div>", unsafe_allow_html=True)
 
 if __name__ == "__main__":
     main()
     show_footer()
+
+
+
 
